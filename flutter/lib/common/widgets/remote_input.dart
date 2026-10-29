@@ -491,7 +491,20 @@ class _RawTouchGestureDetectorRegionState
       ffi.canvasModel.updateScale(d.scale / _scale, d.focalPoint);
       _scale = d.scale;
       ffi.canvasModel.panX(d.focalPointDelta.dx);
-      ffi.canvasModel.panY(d.focalPointDelta.dy);
+      // Custom: vertical two-finger movement scrolls the remote, so pinch-zoom
+      // and scrolling can happen in the same gesture. Replaces canvas panY.
+      if (!ffi.ffiModel.isPeerAndroid) {
+        _mouseScrollIntegral += d.focalPointDelta.dy / 4;
+        if (_mouseScrollIntegral > 1) {
+          inputModel.scroll(1);
+          _mouseScrollIntegral = 0;
+        } else if (_mouseScrollIntegral < -1) {
+          inputModel.scroll(-1);
+          _mouseScrollIntegral = 0;
+        }
+      } else {
+        ffi.canvasModel.panY(d.focalPointDelta.dy);
+      }
     }
   }
 

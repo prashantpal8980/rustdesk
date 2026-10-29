@@ -24,6 +24,7 @@ import '../../models/platform_model.dart';
 import '../../utils/image.dart';
 import '../widgets/dialog.dart';
 import '../widgets/custom_scale_widget.dart';
+import '../widgets/image_upload.dart';
 
 final initText = '1' * 1024;
 
@@ -366,6 +367,20 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
     }
   }
 
+  // Custom: an image tapped in the keyboard's clipboard is uploaded to the
+  // remote PC, then its `@path` is typed so Claude Code attaches it.
+  Future<void> _handleInsertedImage(KeyboardInsertedContent content) async {
+    final data = content.data;
+    if (data == null || data.isEmpty) {
+      showToast('Pasted image had no data');
+      return;
+    }
+    final path = await uploadImageToPeer(widget.id, data, content.mimeType);
+    if (path != null) {
+      bind.sessionInputString(sessionId: sessionId, value: '@$path ');
+    }
+  }
+
   // handle mobile virtual keyboard
   void handleSoftKeyboardInput(String newValue) {
     if (!inputModel.keyboardInputAllowed) {
@@ -697,6 +712,16 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
                       // ko/zh/ja input method: the button will trigger `onKeyEvent`
                       //                     and the event will not popup if `KeyEventResult.handled` is returned.
                       onChanged: handleSoftKeyboardInput,
+                      contentInsertionConfiguration:
+                          ContentInsertionConfiguration(
+                        allowedMimeTypes: const [
+                          'image/png',
+                          'image/jpeg',
+                          'image/gif',
+                          'image/webp',
+                        ],
+                        onContentInserted: _handleInsertedImage,
+                      ),
                     ).workaroundFreezeLinuxMint(),
             ),
           ];
